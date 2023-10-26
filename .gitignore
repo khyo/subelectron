@@ -1,0 +1,14 @@
+.yarn/
+*.swp
+config.py
+*.py[co]
+__pycache__/
+.idea
+ark/
+dist/
+*/dist/*
+.tag*
+node_modules
+yarn.lock
+*.egg-info*
+config.json
