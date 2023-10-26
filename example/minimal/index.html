@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+<style>
+
+body { 
+  background-color: lightblue; 
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+h1 { color: darkorange; }
+
+</style>
+</head>
+<body></body>
+<script type="module">
+
+import {h, render, Component} from "https://cdn.skypack.dev/preact";
+import {useState} from "https://cdn.skypack.dev/preact/hooks";
+import htm from "https://cdn.skypack.dev/htm";
+const html = htm.bind(h);
+const ipc = window.ipc
+
+
+const Counter = () => {
+  const [count, setCount] = useState(0);
+
+  const increment = () => {
+    setCount(prevState => prevState + 1);
+  };
+
+  return html`
+    <button onClick=${increment}>
+      Count: ${count}
+    </button>
+    <button onClick=${main}>
+      Run Python IPC
+    </button>
+  `;
+};
+
+const App = () => html`
+  <h1>SubElectron Single-File</h1>
+  <${Counter} />
+`;
+
+// Demo Python IPC
+function delay(t, val) {
+  return new Promise(resolve => setTimeout(resolve, t*1000.0, val));
+}
+
+async function main() {
+  const event = 'js-sourced-event'
+  console.log('Sending Python an event', event)
+  ipc.send(event)
+
+  ipc.on('long-process', async (e, arg) => {
+    await delay(arg)
+    return `done with ${e}`
+  })
+  
+  const request = ['ping-python', [1, 2]]
+  console.log("Sending Python a request:", request)
+  const response = await ipc.ask(...request)
+  console.log("Python responded with:", response)
+}
+
+render(html`<${App} />`, document.body);
+
+</script>
+</html>

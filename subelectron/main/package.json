@@ -1,0 +1,17 @@
+{
+  "name": "subelectron-main",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Subelectron Electron-Main process code",
+  "main": "main.js",
+  "scripts": {
+    "build": "bun run build:main; bun run build:preload",
+    "build:main":    "esbuild src/main.ts --external:electron --external:node-pty --bundle --minify --platform=node --outfile=main.js",
+    "build:preload": "esbuild src/preload.ts --external:electron --bundle --minify --platform=node --outfile=preload.js"
+  },
+  "author": "kyle.howen@subinitial.com",
+  "devDependencies": {
+    "@types/node": "^20.8.9",
+    "esbuild": "0.19.4"
+  }
+}

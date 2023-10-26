@@ -26,6 +26,7 @@ setup(
         ]},
     install_requires=dependencies,
     include_package_data=True,
+    package_data={'': ['**/*.ts', "**/*.js", "**/*.json", "**/*.html", "**/*.css", "**/*.ico", "**/*.png", "**/*.py"]},
     license='UNLICENSED',
     url='https://github.com/khyo/subelectron.git',
     author='Kyle Howen',

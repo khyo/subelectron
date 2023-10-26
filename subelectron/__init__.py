@@ -1,1 +1,1 @@
-from .ipc import launch
+from .electron import Electron, ResponsePending

@@ -1,5 +1,6 @@
 import os
 
+
 def lnkfile(path: str, target: str, arguments:str, icon: str, wd: str):
     import win32com.client
     shell = win32com.client.Dispatch("WScript.Shell")
@@ -9,6 +10,7 @@ def lnkfile(path: str, target: str, arguments:str, icon: str, wd: str):
     shortcut.Arguments = arguments
     shortcut.WorkingDirectory = wd
     shortcut.save()
+
 
 def desktopfile(path: str, exec: str, icon: str, terminal = False, name=None):
     if name is None:
