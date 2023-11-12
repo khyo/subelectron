@@ -10,9 +10,11 @@ def read(*rnames):
 
 VERSION = re.findall(r"\d+", read("subelectron", "version.py"))
 
-dependencies = []
+dependencies = [
+    'subpack @ git+https://github.com/khyo/subpack.git@dev#egg=subpack',
+]
 if "window" in platform.system().lower():
-    dependencies = ["pypiwin32", "pywin32"]
+    dependencies += ["pypiwin32", "pywin32"]
 
 
 setup(

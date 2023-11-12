@@ -58,16 +58,19 @@ const ipc = {
     }
   },
 
-  on(event, handler) {
-    handlers[event] = handler
-  },
 
-  cancel(event) {
-    delete handlers[event]
-  },
-
-  send(event, arg=null) {
+  send(command: string, arg: any = null) {
     _send([0, event, arg])
+  },
+
+	on(event: string, handler: Handler) {
+		handlers[event] = handler
+	},
+
+  cancel(event: string) {
+    const retval = handlers[event]
+		delete handlers[event]
+		return retval
   },
 
   ask(req, arg=null, timeout=null) {

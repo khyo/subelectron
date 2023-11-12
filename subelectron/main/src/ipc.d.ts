@@ -9,7 +9,7 @@ interface Ipc {
   /** Specify an event handler for one-way event sent from Superior */
   on(event: string, handler: Handler): void
   /** Cancel an event handler and return the handler if one existed */
-  cancel(event: string): Handler | null
+  cancel(event: string): Handler | undefined
   /** Ask Superior to perform request with arguments, wait for and return the response */
   ask(req: string, arg?: any, timeout?: number): Promise<any>
 }
