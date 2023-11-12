@@ -12,6 +12,7 @@ node_modules
 yarn.lock
 *.egg-info*
 config.json
+.venv
 bun.lockb
 
 #############
