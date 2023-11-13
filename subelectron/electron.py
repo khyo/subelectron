@@ -1,8 +1,6 @@
 import subprocess
-import os
 import atexit
 import json
-import urllib.request
 import logging
 import threading
 import traceback
@@ -10,9 +8,11 @@ import socket
 import time
 import hashlib
 from .common import *
+import subpack.packages as packages
+
+
 
 Handler = typing.Callable[[str, Any], Any]
-
 
 MAX_ASK_COUNT = 1024
 
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 class Electron:
     def __init__(self, title: str, version: Optional[str] = None, proj_dir: Optional[Path]=None):
         self.title = title
-        self.install = Installation(version=version or vars.ELECTRON_VERSION)
+        self.install = packages.Electron(version=version or packages.Electron.DEFAULT_VERSION)
         self.pmain: subprocess.Popen[bytes] | None = None
         self._handlers: dict[str, Handler] = {}
         self._responses: dict[int, Any] = {}
@@ -39,7 +39,7 @@ class Electron:
         self._cv = threading.Condition()
         self._ask_id = 1
         self.proj_dir = proj_dir or Path.cwd()
-        self.cache = vars.elec_dir.joinpath('tmp', f'{self.title}_{hashlib.sha1(str(self.proj_dir).encode()).hexdigest()}')
+        self.cache = packages.Package.SUBPACK_DIR.joinpath('subelectron', 'cache', f'{self.title}_{hashlib.sha1(str(self.proj_dir).encode()).hexdigest()}')
         self.fresh = not self.cache.exists()
 
         # exit handler
@@ -105,7 +105,7 @@ class Electron:
         
 
     def launch(self, url_or_html: str | Path="index.html", *args: str, wait_port: Optional[int]=None):        
-        self.install.ensure_installed()
+        exe = self.install.ensure_installed()
         if self.fresh:
             self.cache.mkdir(parents=True, exist_ok=True)
         
@@ -115,7 +115,7 @@ class Electron:
         # launch the electron main process
         main_js = vars.lib_dir.joinpath("main", "main.js")
         p = self.pmain = self.childproc(
-            str(self.install.exe),
+            str(exe),
             str(main_js),
             json.dumps(dict(
                 title=self.title,
@@ -258,49 +258,3 @@ class Electron:
         p: Any = self.pmain.stdin  # type: ignore
         p.write(json.dumps(obj).encode() + b'\n')
         p.flush()
-
-    
-    # p.wait()
-
-
-class Installation:
-    INDENT = "      "
-    
-    def __init__(self, version: str) -> None:
-        self.version = "v" + version.lower().strip("v")
-        self.name = f'electron-{self.version}'
-        self.path = vars.elec_dir.joinpath(self.name)
-        self.exe = self.path.joinpath("electron")
-
-    def install(self):
-        tmp = vars.elec_dir.joinpath("tmp")
-        tmp.mkdir(exist_ok=True, parents=True)
-        ark_file = str(tmp.joinpath(self.name + ".zip"))
-
-        print(self.INDENT + "downloading electron... (can take a few minutes)", flush=True)
-        
-        if vars.is_posix:
-            platform_name = "linux"
-            extraction_method = "unzip {0} -d {1}"
-        else:
-            platform_name = "win32"
-            extraction_method = "unzip {0} -d {1}"  # TODO: update this
-
-        archive_url = f"https://github.com/electron/electron/releases/download/{self.version}/electron-{self.version}-{platform_name}-x64.zip"
-        logger.info("src: %s", archive_url)
-        logger.info("dst: %s", ark_file)
-        urllib.request.urlretrieve(archive_url, ark_file)
-        
-        print(self.INDENT + "extracting archive... (can take a few more seconds!)", flush=True)
-
-        extraction_cmd = extraction_method.format(ark_file, self.path)
-        logger.info("extracting via: %s", extraction_cmd)
-
-        self.path.mkdir(exist_ok=True, parents=True)
-        subprocess.run(extraction_cmd, shell=True, stdout=subprocess.PIPE).check_returncode()
-
-        os.unlink(ark_file)
-
-    def ensure_installed(self):
-        if not self.exe.exists():
-            self.install()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse, subprocess, os, shutil
 from .common import *
-import subelectron.shortcut as shortcut
+import subpack.shortcut as shortcut
 
 
 def sh(cmd, shell=True, **kwargs):
