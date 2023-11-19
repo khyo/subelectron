@@ -6,6 +6,8 @@ import threading
 import traceback
 import socket
 import time
+import sys
+import os
 import hashlib
 from .common import *
 import subpack.packages as packages
@@ -69,6 +71,21 @@ class Electron:
             stdout=stdout,
             stderr=stderr,
         )
+        
+        master_pid = [os.getpid()]
+
+        def monitor_child_proc():
+            rc = p.wait()
+            if (pid := master_pid[0]):
+                master_pid[0] = None
+                import signal
+                os.kill(pid, signal.SIGKILL)
+
+        # def on_master_exit():
+        #     if master_pid[0]:
+        #         ()
+            
+        threading.Thread(target=monitor_child_proc, daemon=True).start()
         atexit.register(p.kill)
         return p
 
