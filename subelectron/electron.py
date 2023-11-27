@@ -41,8 +41,13 @@ class Electron:
         self._cv = threading.Condition()
         self._ask_id = 1
         self.proj_dir = proj_dir or Path.cwd()
-        self.cache = packages.Package.SUBPACK_DIR.joinpath('subelectron', 'cache', f'{self.title}_{hashlib.sha1(str(self.proj_dir).encode()).hexdigest()}')
+        self.cache = packages.Package.SUBPACK_DIR.joinpath('se-cache', f'{self.title}_{hashlib.sha1(str(self.proj_dir).encode()).hexdigest()}')
+ 
         self.fresh = not self.cache.exists()
+        if not self.fresh and "--clear-se-cache" in sys.argv:
+            import shutil
+            shutil.rmtree(self.cache)
+        
 
         # exit handler
         self._handlers["_exit"] = lambda e, arg: self.close()
