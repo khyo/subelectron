@@ -44,9 +44,11 @@ class Electron:
         self.cache = packages.Package.SUBPACK_DIR.joinpath('se-cache', f'{self.title}_{hashlib.sha1(str(self.proj_dir).encode()).hexdigest()}')
  
         self.fresh = not self.cache.exists()
-        if not self.fresh and "--clear-se-cache" in sys.argv:
+        if not self.fresh and "--se-cache-clear" in sys.argv:
             import shutil
+            print("removing", self.cache)
             shutil.rmtree(self.cache)
+            self.fresh = True
         
 
         # exit handler
