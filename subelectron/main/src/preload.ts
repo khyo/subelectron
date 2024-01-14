@@ -60,7 +60,7 @@ const ipc = {
 
 
   send(command: string, arg: any = null) {
-    _send([0, event, arg])
+    _send([0, command, arg])
   },
 
 	on(event: string, handler: Handler) {

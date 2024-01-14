@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class Electron:
-    def __init__(self, title: str, version: Optional[str] = None, proj_dir: Optional[Path]=None):
+    def __init__(self, title: str, version: Optional[str] = None, proj_dir: Optional[Path]=None, icon: str|None = None):
         self.title = title
         self.install = packages.Electron(version=version or packages.Electron.DEFAULT_VERSION)
         self.pmain: subprocess.Popen[bytes] | None = None
@@ -40,7 +40,10 @@ class Electron:
         self._tlisten: threading.Thread | None = None
         self._cv = threading.Condition()
         self._ask_id = 1
+        self.icon = icon
         self.proj_dir = proj_dir or Path.cwd()
+        self.pid_python = os.getpid()
+        self._child_procs: list[subprocess.Popen] = [] 
         self.cache = packages.Package.SUBPACK_DIR.joinpath('se-cache', f'{self.title}_{hashlib.sha1(str(self.proj_dir).encode()).hexdigest()}')
  
         self.fresh = not self.cache.exists()
@@ -69,31 +72,23 @@ class Electron:
         """ if True, tcp port is in use """
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             return sock.connect_ex(('localhost', port)) == 0
-                
-    @staticmethod
-    def childproc(*args: str, stdin=None, stdout=None, stderr=None):
+        
+    def childproc(self, *args: str, stdin=None, stdout=None, stderr=None, monitor=True):
         """ spawn new subprocess that will close when this superior process closes"""
         p = subprocess.Popen(args,
             stdin=stdin,
             stdout=stdout,
             stderr=stderr,
         )
+        logger.info("spawned %s", p.pid)
+        self._child_procs.append(p)
+
+        if monitor:
+            def monitor_child_proc():
+                rc = p.wait()
+                self.close()
         
-        master_pid = [os.getpid()]
-
-        def monitor_child_proc():
-            rc = p.wait()
-            if (pid := master_pid[0]):
-                master_pid[0] = None
-                import signal
-                os.kill(pid, signal.SIGKILL)
-
-        # def on_master_exit():
-        #     if master_pid[0]:
-        #         ()
-            
-        threading.Thread(target=monitor_child_proc, daemon=True).start()
-        atexit.register(p.kill)
+            threading.Thread(target=monitor_child_proc, daemon=True).start()        
         return p
 
     @staticmethod
@@ -143,6 +138,7 @@ class Electron:
             str(main_js),
             json.dumps(dict(
                 title=self.title,
+                icon=self.icon,
                 cache=str(self.cache),
                 fresh=self.fresh,
                 wait_port=wait_port,
@@ -152,7 +148,9 @@ class Electron:
             stdout=subprocess.PIPE,
             # stderr=subprocess.PIPE,
         )
-        atexit.register(p.kill)
+        self._child_procs.append(p)
+        
+        atexit.register(self.close)
 
         if p.stdin is None or p.stdout is None:
             raise Exception("Electron process failed to pipe stdin & stdout")
@@ -161,6 +159,7 @@ class Electron:
         self._tlisten = threading.Thread(target=self._task_listen, daemon=True)
         self._tlisten.start()
     
+
     def _task_listen(self):
         """ listening task loop """
         responses, handlers, cv = self._responses, self._handlers, self._cv
@@ -209,9 +208,18 @@ class Electron:
                 traceback.print_exc()
 
     def close(self):
+        for p in self._child_procs:
+            logger.info(f"terminating {p.pid}")
+            p.terminate()
+
+        self._child_procs.clear()
+
         if self.pmain:
-            self.pmain.kill()
-            self.pmain = None
+            self.pmain = None    
+            import signal
+            logger.info(f"terminating {self.pid_python}")
+            os.kill(self.pid_python, signal.SIGTERM)
+        
 
     def send(self, event: str, arg):
         """

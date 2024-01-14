@@ -40,6 +40,10 @@ function make() {
       preload: path.join(__dirname, 'preload.js'),
     })
 
+    if (opts.icon) {
+      mainWindow.setIcon(opts.icon)
+    }
+
     mainWindow.on('close', (event) => {
       if (preventClose) {
         event.preventDefault()
